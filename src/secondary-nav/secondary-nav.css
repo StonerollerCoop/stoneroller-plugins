@@ -170,3 +170,30 @@
 .sbnav-menu-items[hidden] { display: none !important; }
 .sbnav-menu-items--menu-top { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid currentColor; }
 .sbnav-menu-items--menu-bottom { padding-top: 1rem; margin-top: 1rem; border-top: 1px solid currentColor; }
+
+/* Editor-only notice */
+#sbnav-notice {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 2147483000;
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 1rem 1.2rem;
+  background: #fff8e6;
+  color: #1d1d1f;
+  border: 2px solid #c98a12;
+  border-radius: 8px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+  font: 16px/1.5 Georgia, serif;
+}
+#sbnav-notice p { margin: 0.5rem 0; }
+#sbnav-notice .sbnav-notice__small { font-size: 13px; color: #555; }
+#sbnav-notice button {
+  font: inherit;
+  font-size: 14px;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid #c98a12;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}

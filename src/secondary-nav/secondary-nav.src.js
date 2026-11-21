@@ -15,6 +15,12 @@
   if (window.SBSecondaryNav) return;
 
   var VERSION = "__VERSION__";
+  var MAJOR = parseInt(VERSION, 10);
+  var HOST = "https://stoneroller-plugins.episcohub.workers.dev";
+  var SCRIPT = document.currentScript;
+  // True when the site loads the plugin from the Stoneroller address,
+  // false when the self-contained copy is pasted into the site.
+  var HOSTED = !!(SCRIPT && SCRIPT.src && SCRIPT.src.indexOf(HOST) === 0);
   var ICONS = __ICONS__;
   var LABEL_ICONS = __LABEL_ICONS__;
   ICONS.email = "M2 4h20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v.4l10 6.25L22 6.4V6H2zm20 2.75-9.47 5.92a1 1 0 0 1-1.06 0L2 8.75V18h20V8.75z";
@@ -210,7 +216,7 @@
       });
 
     nav.appendChild(inner);
-    return { tpl: tpl, nav: nav, opts: opts, menuItems: null, section: null };
+    return { tpl: tpl, nav: nav, opts: opts, menuItems: null, section: null, empty: !inner.children.length };
   }
 
   function getHeader() {
@@ -239,12 +245,16 @@
     applyBreakpoint(inst);
   }
 
+  function findMenuRoot() {
+    return document.querySelector('.header-menu-nav-folder[data-folder="root"] .header-menu-nav-folder-content') ||
+           document.querySelector(".header-menu-nav-folder-content") ||
+           document.querySelector(".header-menu-nav-list");
+  }
+
   function mountMobileMenu(inst) {
     var mode = inst.opts.mobile;
     if (mode !== "menu-top" && mode !== "menu-bottom") return;
-    var root = document.querySelector('.header-menu-nav-folder[data-folder="root"] .header-menu-nav-folder-content') ||
-               document.querySelector(".header-menu-nav-folder-content") ||
-               document.querySelector(".header-menu-nav-list");
+    var root = findMenuRoot();
     if (!root) return;
     if (inst.menuItems && root.contains(inst.menuItems)) return;
 
@@ -308,6 +318,162 @@
     });
   }
 
+
+  /* ---------- Self-check, problem reports and editor notices ---------- */
+
+  function inEditorFrame() {
+    try { return window.self !== window.top; } catch (e) { return true; }
+  }
+
+  function isLocal() {
+    return location.protocol === "file:" || /^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname);
+  }
+
+  // Editors see notices; ordinary visitors never do.
+  // An editor can switch notices on for one browser by visiting any page with ?sbnav-editor=on
+  function isEditor() {
+    try {
+      if (/[?&]sbnav-editor=on\b/.test(location.search)) localStorage.setItem("sbnav-editor", "on");
+      if (/[?&]sbnav-editor=off\b/.test(location.search)) localStorage.removeItem("sbnav-editor");
+      if (localStorage.getItem("sbnav-editor") === "on") return true;
+    } catch (e) {}
+    try {
+      var ctx = window.Static && window.Static.SQUARESPACE_CONTEXT;
+      if (ctx && ctx.authenticatedAccount) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  function selfCheck() {
+    var issues = [];
+    instances.forEach(function (inst, i) {
+      var name = "Bar " + (i + 1) + " (" + inst.opts.label + ")";
+      if (inst.empty) {
+        issues.push(name + ": no title, links or actions were found inside the template");
+        return;
+      }
+      if (!document.body.contains(inst.nav)) {
+        issues.push(name + ": could not be placed on the page" +
+          (inst.opts.position === "section" ? "" : " (Squarespace header not found)"));
+        return;
+      }
+      if (!inst.nav.classList.contains("sbnav--is-mobile") && inst.nav.offsetHeight === 0) {
+        issues.push(name + ": was placed but is not visible");
+      }
+      if (inst.opts.theme) {
+        var bg = window.getComputedStyle(inst.nav).getPropertyValue("--siteBackgroundColor").trim();
+        if (!bg) issues.push(name + ': colors for theme "' + inst.opts.theme + '" were not found');
+      }
+      if ((inst.opts.mobile === "menu-top" || inst.opts.mobile === "menu-bottom") && !findMenuRoot()) {
+        issues.push(name + ": the Squarespace phone menu was not found");
+      }
+    });
+    return issues;
+  }
+
+  function reportProblems(issues) {
+    if (!issues.length) return;
+    if (window.console) console.warn("[Stoneroller Secondary Nav " + VERSION + "] " + issues.join(" | "));
+    if (inEditorFrame() || isLocal()) return;
+
+    // Report each distinct problem at most once a day from each browser.
+    var today = new Date().toISOString().slice(0, 10);
+    var key = "sbnav-report-" + today + "-" + issues.join("|").slice(0, 300);
+    try {
+      if (localStorage.getItem(key)) return;
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf("sbnav-report-") === 0 && k.indexOf("sbnav-report-" + today) !== 0) localStorage.removeItem(k);
+      }
+      localStorage.setItem(key, "1");
+    } catch (e) {}
+
+    var body = JSON.stringify({
+      site: location.hostname,
+      page: location.pathname,
+      version: VERSION,
+      hosted: HOSTED,
+      issues: issues.slice(0, 10)
+    });
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(HOST + "/report", new Blob([body], { type: "text/plain" }));
+      } else {
+        fetch(HOST + "/report", { method: "POST", body: body, mode: "no-cors", keepalive: true });
+      }
+    } catch (e) {}
+  }
+
+  function isNewer(a, b) {
+    var x = String(a).split("."), y = String(b).split(".");
+    for (var i = 0; i < 3; i++) {
+      var p = parseInt(x[i], 10) || 0, q = parseInt(y[i], 10) || 0;
+      if (p !== q) return p > q;
+    }
+    return false;
+  }
+
+  function showNotice(lines) {
+    var dismissKey = "sbnav-notice-dismissed-" + lines.join("|").slice(0, 200);
+    try { if (Date.now() < Number(localStorage.getItem(dismissKey) || 0)) return; } catch (e) {}
+    if (document.getElementById("sbnav-notice")) return;
+
+    var box = document.createElement("div");
+    box.id = "sbnav-notice";
+    box.setAttribute("role", "status");
+    var title = document.createElement("strong");
+    title.textContent = "Secondary navigation plugin";
+    box.appendChild(title);
+    lines.forEach(function (line) {
+      var p = document.createElement("p");
+      p.textContent = line;
+      box.appendChild(p);
+    });
+    var small = document.createElement("p");
+    small.className = "sbnav-notice__small";
+    small.textContent = "Only site editors see this notice.";
+    box.appendChild(small);
+    var close = document.createElement("button");
+    close.type = "button";
+    close.textContent = "Hide for a week";
+    close.addEventListener("click", function () {
+      try { localStorage.setItem(dismissKey, String(Date.now() + 7 * 86400000)); } catch (e) {}
+      box.parentNode.removeChild(box);
+    });
+    box.appendChild(close);
+    document.body.appendChild(box);
+  }
+
+  function editorNotices(issues) {
+    if (!isEditor()) return;
+    var lines = [];
+    if (issues.length) {
+      lines.push("Something on this page needs attention: " + issues.join("; ") + ".");
+    }
+    function finish() { if (lines.length) showNotice(lines); }
+    if (!window.fetch) return finish();
+    fetch(HOST + "/secondary-nav/latest.json", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (info) {
+        if (!HOSTED && info.version && isNewer(info.version, VERSION)) {
+          lines.push("Version " + info.version + " is available. This site uses the self-contained copy (version " +
+            VERSION + "), which does not update itself. Paste a fresh copy from the guide into Code Injection to update.");
+        }
+        if (info.latestMajor && info.latestMajor > MAJOR) {
+          lines.push("Version " + info.latestMajor + " of the plugin is available. It changes how bars are written, so read the guide before switching.");
+        }
+        if (info.message) lines.push(info.message);
+        finish();
+      })
+      .catch(finish);
+  }
+
+  function runChecks() {
+    var issues = selfCheck();
+    reportProblems(issues);
+    editorNotices(issues);
+  }
+
   function init() {
     injectStyles();
     var templates = document.querySelectorAll("template[data-sb-nav]");
@@ -319,6 +485,9 @@
       mount(inst);
     });
     if (!instances.length) return;
+
+    // Check the finished bars once the page has settled.
+    setTimeout(runChecks, 2500);
 
     window.addEventListener("resize", onResize);
     window.addEventListener("scroll", onResize, { passive: true });
@@ -340,6 +509,8 @@
     refresh: init,
     icons: Object.keys(LABEL_ICONS),
     renderIcon: function (name) { return makeLabelIcon(name) || makeIcon(name); },
+    hosted: HOSTED,
+    check: selfCheck,
     socialIcons: Object.keys(ICONS)
   };
 

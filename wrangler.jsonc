@@ -1,9 +1,36 @@
-// Lets Cloudflare deploy this repo as a Worker that serves the public/ folder.
-// Cloudflare Pages ignores this file, so either deploy route works.
+// Cloudflare deploy settings for stoneroller-plugins.
 {
   "name": "stoneroller-plugins",
+  "main": "src/worker.js",
   "compatibility_date": "2025-06-01",
+
+  // Plugin files and the test page.
   "assets": {
-    "directory": "./public"
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+
+  // Daily site check at 12:17 UTC (7:17 a.m. Eastern in winter, 8:17 a.m. in summer).
+  "triggers": {
+    "crons": ["17 12 * * *"]
+  },
+
+  // Keeps the Worker's logs so reports can be read in the Cloudflare dashboard.
+  "observability": {
+    "enabled": true
+  },
+
+  "vars": {
+    // Client sites to check daily. Only these sites can trigger alert emails.
+    // Example: [{ "name": "Saint Barnabas", "url": "https://example.org/" }]
+    "SITES": [],
+
+    // Where alerts go, and the address they come from. ALERT_FROM must be on a
+    // domain that uses Cloudflare Email Routing.
+    "ALERT_TO": "libby@stonerollercoop.com",
+    "ALERT_FROM": ""
   }
+
+  // Email sending. Turn this on after Email Routing is set up (see README):
+  // ,"send_email": [{ "name": "ALERT_EMAIL", "destination_address": "libby@stonerollercoop.com" }]
 }
