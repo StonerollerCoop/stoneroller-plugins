@@ -1,0 +1,9 @@
+// Lets Cloudflare deploy this repo as a Worker that serves the public/ folder.
+// Cloudflare Pages ignores this file, so either deploy route works.
+{
+  "name": "stoneroller-plugins",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./public"
+  }
+}
