@@ -1,6 +1,133 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>Stoneroller Plugins</title></head>
-<body style="font-family:Georgia,serif;font-size:20px;padding:3rem 5vw;color:#181146">
-<h1>Stoneroller Plugins</h1>
-<p>Squarespace plugins built by Stoneroller Cooperative (stonerollercoop.com). This address serves plugin files to client websites.</p>
-</body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stoneroller Plugins: Secondary Navigation Test Page</title>
+<style>
+  /* Stand-in theme colors for this test page only. On a Squarespace site,
+     each theme's colors come from Site Styles > Colors. */
+  .white { --siteBackgroundColor: #ffffff; --navigationLinkColor: #181146; --primaryButtonBackgroundColor: #181146; --primaryButtonTextColor: #ffffff; }
+  .light { --siteBackgroundColor: #f3efe6; --navigationLinkColor: #181146; --primaryButtonBackgroundColor: #181146; --primaryButtonTextColor: #ffffff; }
+  .dark  { --siteBackgroundColor: #181146; --navigationLinkColor: #ffffff; --primaryButtonBackgroundColor: #e8b85c; --primaryButtonTextColor: #181146; }
+
+  body { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 20px; line-height: 1.6; color: #1d1d1f; }
+  #header { position: sticky; top: 0; z-index: 50; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .mock-main { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.3rem 4vw; color: #181146; }
+  .mock-logo { font-size: 1.4rem; font-weight: bold; letter-spacing: 0.06em; }
+  .mock-links { display: flex; flex-wrap: wrap; gap: 1.5rem; font-size: 1.1rem; }
+  .mock-burger { display: none; font-size: 1.6rem; }
+  @media (max-width: 767px) { .mock-links { display: none; } .mock-burger { display: block; } }
+  .page-section { padding: 2.5rem 4vw; }
+  h1 { font-size: 1.9rem; color: #181146; margin: 0 0 1rem; }
+  h2 { font-size: 1.4rem; color: #181146; margin: 2rem 0 0.5rem; }
+  .controls { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0 1.5rem; }
+  .controls button { font: inherit; font-size: 1rem; padding: 0.6rem 1.2rem; border: 2px solid #181146; background: #fff; color: #181146; border-radius: 4px; cursor: pointer; }
+  .controls button[aria-pressed="true"] { background: #181146; color: #fff; }
+  .status { padding: 1rem 1.4rem; border-radius: 8px; background: #eef7ee; border: 1px solid #9cc79c; }
+  .status.bad { background: #fdeeee; border-color: #d99; }
+  .filler { color: #666; }
+  code { font-family: Menlo, Consolas, monospace; font-size: 0.85em; background: #f6f4fa; padding: 0.1em 0.35em; border-radius: 4px; }
+</style>
+
+<!-- The hosted plugin, exactly as a Squarespace site loads it -->
+<script defer src="/secondary-nav/v1/secondary-nav.js"></script>
+
+<!-- The St. Barnabas navigation, exactly as it goes into Code Injection -->
+<template data-sb-nav
+  data-position="above-header"
+  data-layout="links-right"
+  data-theme="white"
+  data-mobile="hide"
+  data-label="Quick links">
+  <div data-sb-links>
+    <a href="#" data-sb-icon="calendar">Calendar</a>
+    <a href="#" data-sb-icon="livestream">Livestream</a>
+    <a href="#" data-sb-icon="directory">Directory</a>
+    <a href="#" data-sb-icon="subscribe">Subscribe</a>
+    <a href="#" data-sb-icon="contact">Contact</a>
+    <a href="#" data-sb-icon="give">Give</a>
+  </div>
+</template>
+</head>
+<body>
+<header id="header">
+  <div class="mock-main">
+    <div class="mock-logo">ST. BARNABAS</div>
+    <nav class="mock-links" aria-label="Main">
+      <span>Welcome</span><span>Worship</span><span>Connect</span><span>Serve</span><span>About</span><span>Give</span>
+    </nav>
+    <div class="mock-burger" aria-hidden="true">&#9776;</div>
+  </div>
+</header>
+
+<main>
+  <section class="page-section">
+    <h1>Secondary navigation test page</h1>
+    <p>The bar of icons and links at the very top is the real plugin, loaded from this address exactly as the St. Barnabas site will load it. The white header with the logo is a stand-in for the Squarespace header.</p>
+    <p id="status" class="status bad">Checking whether the plugin loaded&hellip;</p>
+
+    <h2>Try the color themes</h2>
+    <p>These buttons switch the bar's theme. The colors on this page are placeholders; on the website, the bar uses the colors from Site Styles.</p>
+    <div class="controls" role="group" aria-label="Bar theme">
+      <button type="button" data-theme="white" aria-pressed="true">White</button>
+      <button type="button" data-theme="light" aria-pressed="false">Light</button>
+      <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+    </div>
+
+    <h2>Try phone width</h2>
+    <p>Make the browser window narrower than 768 pixels, or open this page on a phone. The bar disappears, because the St. Barnabas nav is set to <code>data-mobile="hide"</code>.</p>
+  </section>
+
+  <section class="page-section">
+    <h2>A bar placed inside a page section</h2>
+    <p>This second bar shows the section placement with a dropdown and a button. It stays pinned below the header as you scroll.</p>
+  </section>
+  <section class="page-section" style="padding-top:0;padding-bottom:0">
+    <template data-sb-nav data-position="section" data-layout="links-center" data-theme="dark" data-sticky="true" data-mobile="show" data-label="Page links">
+      <div data-sb-title>Example page bar</div>
+      <div data-sb-links>
+        <a href="#" data-sb-icon="info">Overview</a>
+        <div data-sb-dropdown="More" data-sb-icon="book">
+          <a href="#">Newsletters</a>
+          <a href="#">Bulletin</a>
+        </div>
+      </div>
+      <div data-sb-actions>
+        <a href="#" data-sb-button data-sb-icon="give">Give</a>
+      </div>
+    </template>
+  </section>
+  <section class="page-section filler">
+    <p>Scroll down to see the pinned bar stay in place.</p>
+    <p style="height:120vh">&nbsp;</p>
+    <p>End of the test page.</p>
+  </section>
+</main>
+
+<script>
+  window.addEventListener("load", function () {
+    var status = document.getElementById("status");
+    var bars = document.querySelectorAll("nav.sbnav").length;
+    if (window.SBSecondaryNav && bars) {
+      status.className = "status";
+      status.textContent = "The plugin loaded (version " + window.SBSecondaryNav.version + ") and built " + bars + " bars on this page.";
+    } else {
+      status.textContent = "The plugin did not load. Check that /secondary-nav/v1/secondary-nav.js is deployed.";
+    }
+  });
+  document.querySelectorAll(".controls button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var bar = document.querySelector(".sbnav--pos-above-header");
+      if (!bar) return;
+      ["white", "light", "dark"].forEach(function (t) { bar.classList.remove(t); });
+      bar.classList.add(btn.dataset.theme);
+      bar.setAttribute("data-section-theme", btn.dataset.theme);
+      document.querySelectorAll(".controls button").forEach(function (b) {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+    });
+  });
+</script>
+</body>
+</html>
